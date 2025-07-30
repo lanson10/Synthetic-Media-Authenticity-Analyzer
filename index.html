@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcade Hub - Instant Games</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom loader style */
+        .loader {
+            border: 8px solid #4b5563; /* gray-600 */
+            border-top: 8px solid #6366f1; /* indigo-500 */
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1.5s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-slate-800 text-gray-200 min-h-screen">
+
+    <header class="bg-gray-900/50 backdrop-blur-sm shadow-lg sticky top-0 z-10">
+        <nav class="container mx-auto px-6 py-4">
+            <h1 class="text-3xl font-bold text-white">Arcade Hub</h1>
+            <p class="text-gray-400">Instant Games, Endless Fun</p>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-8">
+        <!-- Game grid will be dynamically populated here -->
+        <div id="game-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+            <!-- Initial loading spinner -->
+        </div>
+        
+        <!-- UI feedback container for errors or empty states -->
+        <div id="ui-feedback" class="text-center text-gray-400 mt-8"></div>
+    </main>
+
+    <footer class="bg-gray-900/50 mt-12 py-6">
+        <div class="container mx-auto px-6 text-center text-gray-500 text-sm">
+            <p>This gaming portal is proudly powered by the Gamezop API. To feature your own games, partner with <a href="https://business.gamezop.com/" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:underline">Gamezop Business</a>.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameListContainer = document.getElementById('game-list');
+            const feedbackContainer = document.getElementById('ui-feedback');
+            
+            // Initial UI state: show loading spinner
+            gameListContainer.innerHTML = `<div class="col-span-full flex justify-center items-center h-64"><div class="loader"></div></div>`;
+
+            // --- CONFIGURATION ---
+            // The API Key (Bearer Token) must be obtained from the Gamezop Business dashboard.
+            const apiKey = 'YOUR_API_KEY'; // <-- REPLACE WITH YOUR KEY
+            const apiUrl = 'https://api.gamezop.com/v3/games';
+
+            // Fetch game data from the API
+            fetch(apiUrl, {
+                headers: {
+                    // Set up headers for API authorization
+                    'Authorization': `Bearer ${apiKey}`
+                }
+            })
+            .then(response => {
+                // Handle non-successful HTTP responses
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('API Authorization Failed. Please verify your API Key.');
+                    }
+                    throw new Error(`API request failed with status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(apiResponse => {
+                // Clear the main container
+                gameListContainer.innerHTML = '';
+
+                if (apiResponse && apiResponse.data && apiResponse.data.length > 0) {
+                    const games = apiResponse.data;
+                    
+                    // Populate the grid with game cards
+                    games.forEach(game => {
+                        const gameCard = document.createElement('div');
+                        gameCard.className = 'bg-slate-800/60 rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300 group';
+
+                        const gameLink = document.createElement('a');
+                        gameLink.href = game.url;
+                        gameLink.target = '_blank';
+                        gameLink.rel = 'noopener noreferrer';
+
+                        const gameImage = document.createElement('img');
+                        gameImage.src = game.assets.square; 
+                        gameImage.alt = game.name;
+                        gameImage.className = 'w-full h-auto object-cover';
+                        gameImage.onerror = function() { this.src = 'https://placehold.co/512x512/1f2937/9ca3af?text=No+Image'; };
+
+                        const gameTitle = document.createElement('h3');
+                        gameTitle.textContent = game.name;
+                        gameTitle.className = 'font-semibold p-3 text-center text-sm group-hover:text-indigo-400 transition-colors';
+
+                        // Assemble the card components
+                        gameLink.appendChild(gameImage);
+                        gameLink.appendChild(gameTitle);
+                        gameCard.appendChild(gameLink);
+                        
+                        gameListContainer.appendChild(gameCard);
+                    });
+                } else {
+                    // Handle case where API returns no games
+                    feedbackContainer.textContent = 'No games are available at the moment. Please check back later.';
+                }
+            })
+            .catch(error => {
+                console.error('Project Error - Could not fetch games:', error);
+                
+                // Clear the loading spinner
+                gameListContainer.innerHTML = '';
+
+                // Display a more professional error message
+                feedbackContainer.innerHTML = `
+                    <div class="bg-red-900/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg">
+                        <h2 class="font-bold text-lg mb-2">Error Loading Arcade</h2>
+                        <p>${error.message}</p>
+                        <p class="mt-2 text-sm">This can happen if the API key is not set correctly in the project configuration. Please ensure it has been replaced with a valid key.</p>
+                    </div>
+                `;
+            });
+        });
+    </script>
+
+</body>
+</html>
